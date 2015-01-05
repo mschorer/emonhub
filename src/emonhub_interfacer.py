@@ -125,6 +125,21 @@ class EmonHubInterfacer(object):
         
         return frame
 
+    def _pre_validate_frame(self, f):
+        """Pre-validate a frame of data
+
+        This function performs tests on received frame before it is even
+        split into elements. It discards useless frames before further 
+        processing.
+
+        f (string): unparsed received string
+
+        Returns False is frame is to be discarded, True otherwise
+        """
+
+        # Tests depend on implementation and are to be done in child class
+        return True
+
     def _validate_frame(self, ref, received):
         """Validate a frame of data
 
@@ -380,6 +395,10 @@ class EmonHubSerialInterfacer(EmonHubInterfacer):
             self._log.warning("Discarded empty frame")
             return
 
+        # Pre-validate frame
+        if not self._pre_validate_frame(f):
+            return
+
         # unix timestamp
         t = round(time.time(), 2)
 
@@ -459,30 +478,17 @@ class EmonHubJeeInterfacer(EmonHubSerialInterfacer):
         if all(i in self.info[1] for i in (" i", " g", " @ ", " MHz")):
             self._settings.update(self._jee_settings)
 
-    def read(self):
-        """Read data from serial port and process if complete line received.
+    def _pre_validate_frame(self, f):
+        """Pre-validate a frame of data
 
-        Return data as a list: [NodeID, val1, val2]
+        This function performs tests on received frame before it is even
+        split into elements. It discards useless frames before further 
+        processing.
 
+        f (string): unparsed received string
+
+        Returns False is frame is to be discarded, True otherwise
         """
-
-        # Read serial RX
-        self._rx_buf = self._rx_buf + self._ser.readline()
-
-        # If line incomplete, exit
-        if '\r\n' not in self._rx_buf:
-            return
-
-        # Remove CR,LF
-        f = self._rx_buf[:-2]
-
-        # Reset buffer
-        self._rx_buf = ''
-        
-        # Discard empty frames
-        if not f:
-            self._log.warning("Discarded empty frame")
-            return
 
         # Discard information messages
         if (f[0] == '>'):
@@ -502,11 +508,8 @@ class EmonHubJeeInterfacer(EmonHubSerialInterfacer):
             self._log.debug( self.name + " device settings updated: " + str(self.info[1]))
             return
 
-        # unix timestamp
-        t = round(time.time(), 2)
-
-        # Process data frame
-        return self._process_frame(f, t)
+        # Include checks from parent
+        return super(EmonHubJeeInterfacer, self)._pre_validate_frame(f)
 
     def _validate_frame(self, ref, received):
         """Validate a frame of data
@@ -535,11 +538,8 @@ class EmonHubJeeInterfacer(EmonHubSerialInterfacer):
             # set RSSI false for standard frames so RSSI is not re-appended later
             self.rssi = False
 
-        # include checks from parent
-        if not super(EmonHubJeeInterfacer, self)._validate_frame(ref, received):
-            return False
-
-        return received
+        # Include checks from parent
+        return super(EmonHubJeeInterfacer, self)._validate_frame(ref, received)
 
     def set(self, **kwargs):
         """Send configuration parameters to the "Jee" type device through COM port

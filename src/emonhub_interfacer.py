@@ -436,7 +436,6 @@ class EmonHubJeeInterfacer(EmonHubSerialInterfacer):
                     break
                 elif self._ser is not None:
                     self._ser.close()
-                continue
 
         # Display device firmware version and current settings
         self.info = ["",""]

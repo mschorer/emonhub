@@ -533,7 +533,6 @@ class EmonHubJeeInterfacer(EmonHubSerialInterfacer):
         if str(received[-1])[0]=='(' and str(received[-1])[-1]==')':
             self.rssi = int(received[-1][1:-1])
             received = received[:-1]
-            return received
         else:
             # set RSSI false for standard frames so RSSI is not re-appended later
             self.rssi = False

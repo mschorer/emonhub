@@ -425,6 +425,7 @@ class EmonHubJeeInterfacer(EmonHubSerialInterfacer):
         if com_baud != 0:
             super(EmonHubJeeInterfacer, self).__init__(name, com_port, com_baud)
         else:
+            com_baudrate_identified = False
             for com_baud in (38400, 9600):
                 super(EmonHubJeeInterfacer, self).__init__(name, com_port, com_baud)
                 self._ser.write("?")
@@ -433,9 +434,14 @@ class EmonHubJeeInterfacer(EmonHubSerialInterfacer):
                 if '\r\n' in self._rx_buf or '\x00' in self._rx_buf:
                     self._ser.flushInput()
                     self._rx_buf=""
+                    com_baudrate_identified = True
+                    self._log.debug("COM baudrate identified: %d" % com_baud)
                     break
                 elif self._ser is not None:
                     self._ser.close()
+            if not com_baudrate_identified:
+                raise EmonHubInterfacerInitError( \
+                    'Could not identify COM baudrate. Please specify it in configuration file.')
 
         # Display device firmware version and current settings
         self.info = ["",""]

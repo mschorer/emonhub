@@ -16,6 +16,8 @@ import select
 
 import emonhub_coder as ehc
 
+import os
+
 """class EmonHubInterfacer
 
 Monitors a data source. 
@@ -321,6 +323,83 @@ class EmonHubInterfacer(object):
                                            port_nb)
         else:
             return s
+
+"""class EmonhubPipeInterfacer
+
+Red data from named fifo
+
+"""
+
+
+class EmonHubPipeInterfacer(EmonHubInterfacer):
+
+    def __init__(self, name, pipe="/var/run/emon"):
+        """Initialize interfacer
+
+        pipe (string): path to read from
+
+        """
+        
+        # Initialization
+        super(EmonHubPipeInterfacer, self).__init__(name)
+
+        # Open serial port
+        self._pname = pipe
+        self._pipe = os.open( self._pname, os.O_RDONLY | os.O_NONBLOCK)
+        self._fd = os.fdopen( self._pipe)
+
+        # Initialize RX buffer
+        self._rx_buf = ''
+        
+    def close(self):
+        """Close serial port"""
+        
+        # Close serial port
+        if self._pipe is not None:
+            self._log.debug("Closing pipe")
+            self._fd.close()
+            os.close( self._pipe)
+
+    def read(self):
+        """Read data from serial port and process if complete line received.
+
+        Return data as a list: [NodeID, val1, val2]
+        
+        """
+
+        # Read serial RX
+        try:
+            self._rx_buf = self._rx_buf + self._fd.readline()
+	except OSError:
+            # the os throws an exception if there is no data
+            print '[No more data]'
+        except IOError:
+            self._pipe = os.open( self._pname, os.O_RDONLY | os.O_NONBLOCK)
+            self._fd = os.fdopen( self._pipe)
+ 
+        # If line incomplete, exit
+        if '\n' not in self._rx_buf:
+            return
+
+        # Remove LF
+        f = self._rx_buf[:-1]
+
+        # Reset buffer
+        self._rx_buf = ''
+        
+        # Discard empty frames
+        if not f:
+            self._log.warning("Discarded empty frame")
+            return
+
+        # print '['+f+']\n'
+        
+        # unix timestamp
+        t = round(time.time(), 2)
+
+        # Process data frame
+        return self._process_frame(f, t)
+
 
 """class EmonhubSerialInterfacer
 

@@ -13,10 +13,10 @@ import time
 import logging
 import json
 import threading
-import Queue
 
 import emonhub_buffer as ehb
-  
+
+
 """class EmonHubReporter
 
 Stores server parameters and buffers the data between two HTTP requests

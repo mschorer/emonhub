@@ -7,14 +7,16 @@
 
 """
 
-import serial
 import time
 import datetime
 import logging
 import socket
 import select
 
+import serial
+
 import emonhub_coder as ehc
+
 
 """class EmonHubInterfacer
 
